@@ -16,7 +16,7 @@ RED = (255,0,0)
 BLUE = (0,0,255)
 GREEN = (0,255,0)
 
-screen = pygame.display.set_mode([square_size*8, square_size*8])
+screen = pygame.display.set_mode([square_size*8, square_size*8.5])
 
 # Fill the background with white
 screen.fill((255, 255, 255))
@@ -103,7 +103,7 @@ class Board:
                 return unit
         return None
 # Create the board
-board = Board()
+
 
 # # Add the white pawns
 # for i in range(8):
@@ -140,6 +140,8 @@ anti_shapes={'p':'pawn','r':'rook','n':'knight','b':'bishop','q':'queen','k':'ki
 
 #make a function to draw the board and the pieces on it
 def draw_board():
+    # Fill the background with white
+    screen.fill((255, 255, 255))
     # Draw the board
     for i in range(8):
         for j in range(8):
@@ -180,9 +182,30 @@ def draw_board():
         else:
             text = font.render(chr(ord('A') + i), True, BLACK)
         screen.blit(text, [square_size * i , square_size*7.6])
-draw_board()
+    
+    #if the board has not reached an end state draw the turn at the bottom of the board
+    if board.winner is None:
+        #draw the turn at the bottom of the board
+        if board.turn=='white':
+            text = font.render('White to move', True, BLACK)
+        else:
+            text = font.render('Black to move', True, BLACK)
+        screen.blit(text, [square_size * 3.5, square_size*8])
+    elif board.winner=='white':
+        text = font.render('White wins', True, BLACK)
+        screen.blit(text, [square_size * 3.5, square_size*8])
+    elif board.winner=='black':
+        text = font.render('Black wins', True, BLACK)
+        screen.blit(text, [square_size * 3.5, square_size*8])
+    elif board.winner=='draw':
+        text = font.render('Draw', True, BLACK)
+        screen.blit(text, [square_size * 3.5, square_size*8])
+
 #make a function that gets the board as the input and then returns the possible moves
-def generate_moves(colour=None,checking=False,func_board=board):
+def generate_moves(colour=None,checking=False,func_board=None):
+    if func_board is None:
+        func_board=board
+
     if colour is None:
         current_colour=func_board.turn
     else:
@@ -318,26 +341,11 @@ def generate_moves(colour=None,checking=False,func_board=board):
     if not checking:
         for temp_piece in func_board.units:
             temp_board=copy.deepcopy(func_board)
+            
             moves_to_remove=[]
             for move in temp_piece.avaliable_moves:
-                                #if there is a unit in the new square delete it
-                unit_attacked=temp_board.get_unit_at_position(move)
-                #check if the unit is a pawn and if it has performed an en passant
-                if temp_piece.type=='pawn' and temp_board.en_passant is not None:
-                    if temp_board.en_passant==(temp_piece.position[0]+1,temp_piece.position[1]) or temp_board.en_passant==(temp_piece.position[0]-1,temp_piece.position[1]):
-                        unit_attacked=temp_board.get_unit_at_position(temp_board.en_passant)
-
-                if unit_attacked is not None:
-                    temp_board.units.remove(unit_attacked)
-                temp_board.move_unit(temp_piece.position,move)
-                if temp_piece.type=='king':
-                    temp_board.can_kingside_castle[temp_board.turn]=False
-                    temp_board.can_queenside_castle[temp_board.turn]=False
-                elif temp_piece.type=='rook':
-                    if temp_piece.position[0]==0:
-                        temp_board.can_queenside_castle[temp_board.turn]=False
-                    elif temp_piece.position[0]==7:
-                        temp_board.can_kingside_castle[temp_board.turn]=False
+                move_piece(temp_piece,move,temp_board)
+ 
 
 
                 if check_check(colour=current_colour,func_board=temp_board):
@@ -398,7 +406,9 @@ def individual_checker(position_to_check,colour):
     else:
         return True
 #make a function that checks if the king is in check
-def check_check(colour=None,func_board=board):
+def check_check(colour=None,func_board=None):
+    if func_board is None:
+        func_board=board
     if colour is None:
         if func_board.turn=='white':
             current_colour='black'
@@ -422,7 +432,9 @@ def check_check(colour=None,func_board=board):
 """
 This function will load starting position of the pieces using the FEN notation
 """
-def load_FEN(FEN):
+def load_FEN(FEN,func_board=None):
+    if func_board is None:
+        func_board=board
     #split the FEN into the different parts
     FEN_parts=FEN.split(' ')
     #split the first part into the different rows
@@ -436,41 +448,41 @@ def load_FEN(FEN):
                 #check if the character is uppercase
                 if FEN_rows[i][j].isupper():
                     #add the piece
-                    board.add_unit(Unit(anti_shapes[FEN_rows[i][j].lower()],(j,i),'white'))
+                    func_board.add_unit(Unit(anti_shapes[FEN_rows[i][j].lower()],(j,i),'white'))
                 #if it is a letter add that piece
                 else:
-                    board.add_unit(Unit(anti_shapes[FEN_rows[i][j]],(j,i),'black'))
+                    func_board.add_unit(Unit(anti_shapes[FEN_rows[i][j]],(j,i),'black'))
     #set the turn
     if FEN_parts[1]=='w':
-        board.turn='white'
+        func_board.turn='white'
     else:
 
-        board.turn='black'
+        func_board.turn='black'
     #set the castling
     if FEN_parts[2]=='-':
-        board.can_kingside_castle['white']=False
-        board.can_kingside_castle['black']=False
-        board.can_queenside_castle['white']=False
-        board.can_queenside_castle['black']=False
+        func_board.can_kingside_castle['white']=False
+        func_board.can_kingside_castle['black']=False
+        func_board.can_queenside_castle['white']=False
+        func_board.can_queenside_castle['black']=False
     else:
         for letter in FEN_parts[2]:
             if letter=='K':
-                board.can_kingside_castle['white']=True
+                func_board.can_kingside_castle['white']=True
             elif letter=='Q':
-                board.can_queenside_castle['white']=True
+                func_board.can_queenside_castle['white']=True
             elif letter=='k':
-                board.can_kingside_castle['black']=True
+                func_board.can_kingside_castle['black']=True
             elif letter=='q':
-                board.can_queenside_castle['black']=True
+                func_board.can_queenside_castle['black']=True
     #set the en passant
     if FEN_parts[3]=='-':
-        board.en_passant=None
+        func_board.en_passant=None
     else:
-        board.en_passant=(ord(FEN_parts[3][0])-97,int(FEN_parts[3][1])-1)
+        func_board.en_passant=(ord(FEN_parts[3][0])-97,int(FEN_parts[3][1])-1)
     #set the half move clock
-    board.half_move_clock=int(FEN_parts[4])
+    func_board.half_move_clock=int(FEN_parts[4])
     #set the full move number
-    board.full_move=int(FEN_parts[5])
+    func_board.full_move=int(FEN_parts[5])
 #from board create a FEN
 def create_FEN(short=False):
     FEN=''
@@ -531,174 +543,25 @@ def three_fold_repetition():
         if count==3:
             return True
 
-    
-load_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-draw_board()
-generate_moves()
-#save the board
-board.board_history.append(create_FEN(True))
+#Function when moving a piece will take and change en passant and castling etc
+def move_piece(piece,move,func_board=None):
+    if func_board is None:
+        func_board=board
+    #if there is a unit in the new square delete it
+    unit_attacked=func_board.get_unit_at_position(move)
+    #check if the unit is a pawn and if it has performed an en passant
+    if piece.type=='pawn' and func_board.en_passant is not None:
+        if func_board.en_passant==(piece.position[0]+1,piece.position[1]) or func_board.en_passant==(piece.position[0]-1,piece.position[1]):
+            unit_attacked=func_board.get_unit_at_position(func_board.en_passant)
 
-
-while running:
-
-    # Did the user click the window close button?
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN and board.winner is None:
-            # Check if the click occurred within a square
-            x, y = event.pos
-
-
-
-            i, j = (x) // square_size, y // square_size
-            #check if there is a selected piece
-            if board.selected_unit is None:
-
-                
-                print(x,y)
-                
-                #check if there is a piece in the square and if there is any selected pieces
-                unit_selected = board.get_unit_at_position((i, j))
-                
-                
-                if unit_selected is not None and unit_selected.colour==board.turn and unit_selected.avaliable_moves!=[]:
-                    board.selected_unit=unit_selected
-                    unit_selected.selected=True
-                    #change the colour of the square to a transparent pink
-                    s = pygame.Surface((square_size,square_size))  # the size of your rect
-                    s.set_alpha(150)                # alpha level
-                    s.fill(PINK)           # this fills the entire surface
-                    screen.blit(s,  [square_size * i, square_size * j, square_size, square_size])    # (0,0) are the top-left coordinates
-                    #look at the possible moves and put a black circle on the squares
-                    for move in unit_selected.avaliable_moves:
-                        pygame.draw.circle(screen,BLACK,(square_size*move[0]+square_size/2,square_size*move[1]+square_size/2),square_size/5)
-            #if there is selected peice and the new square is a possible move
-            elif (i,j) in board.selected_unit.avaliable_moves:
-                
-                
-
-                #if there is a unit in the new square delete it
-                unit_attacked=board.get_unit_at_position((i,j))
-                #check if the unit is a pawn and if it has performed an en passant
-                if board.selected_unit.type=='pawn' and board.en_passant is not None:
-                    if board.en_passant==(board.selected_unit.position[0]+1,board.selected_unit.position[1]) or board.en_passant==(board.selected_unit.position[0]-1,board.selected_unit.position[1]):
-                        unit_attacked=board.get_unit_at_position(board.en_passant)
-                #check if the unit is a pawn and if a capture has been made if so reset the half move clock
-                if board.selected_unit.type=='pawn' or unit_attacked is not None:
-                    board.half_move_clock=0
-                else:
-                    board.half_move_clock+=1
-
-                if unit_attacked is not None:
-                    board.units.remove(unit_attacked)
-
-
-
-                #we will move the unit to the new position
-                board.move_unit(board.selected_unit,(i,j))
-                draw_board()
-                if board.selected_unit.type=='king':
-                    board.can_kingside_castle[board.turn]=False
-                    board.can_queenside_castle[board.turn]=False
-                elif board.selected_unit.type=='rook':
-                    if board.selected_unit.position[0]==0:
-                        board.can_queenside_castle[board.turn]=False
-                    elif board.selected_unit.position[0]==7:
-                        board.can_kingside_castle[board.turn]=False
-                board.selected_unit=None
-                #check if the opponents king is in check
-                if check_check():
-                    if board.turn=='white':
-                        board.in_check='black'
-                    else:
-                        board.in_check='white'
-                else:
-                    board.in_check=None
-                #change the turn and add one move to the full move
-                if board.turn=='white':
-                    board.turn='black'
-                else:
-                    board.turn='white'
-                    board.full_move+=1
-
-
-                #check if the pawn can be en passanted
-                if unit_selected.type=='pawn':
-                    if unit_selected.colour=='white':
-                        if unit_selected.position[1]==4:
-                            board.en_passant=unit_selected.position
-                        else:
-                            board.en_passant=None
-                    else:
-                        if unit_selected.position[1]==3:
-                            board.en_passant=unit_selected.position
-                        else:
-                            board.en_passant=None
-                else:
-                    board.en_passant=None
-
-                #if the pawn has reached the end of the board make it a queen
-                if unit_selected.type=='pawn':
-                    if unit_selected.colour=='white':
-                        if unit_selected.position[1]==0:
-                            board.units.remove(unit_selected)
-                            board.units.append(Unit('queen',unit_selected.position,'white'))
-                            unit_selected=board.get_unit_at_position(unit_selected.position)
-                            draw_board()
-                    else:
-                        if unit_selected.position[1]==7:
-                            board.units.remove(unit_selected)
-                            board.units.append(Unit('queen',unit_selected.position,'black'))
-                            unit_selected=board.get_unit_at_position(unit_selected.position)
-                            draw_board()
-                generate_moves()
-                #save the board position
-                board.board_history.append(create_FEN(True))
-            elif (i,j)==board.selected_unit.position:
-                board.selected_unit=None
-                draw_board()
-            #if in check draw a red square around the king
-            if not board.in_check==None:
-
-                for piece in board.units:
-                    if piece.type=='king' and piece.colour==board.in_check:
-                        i,j=piece.position
-                        s = pygame.Surface((square_size,square_size))  # the size of your rect
-                        s.set_alpha(150)                # alpha level
-                        #if in checkmate draw a red square around the king
-                        if check_mate():
-                            s.fill(RED) 
-                            if board.turn=='white':
-                                board.check_mate='black'
-                                board.winner='white'
-                            else:
-                                board.check_mate='white'
-                                board.winner='black'
-                        else:
-                            s.fill(BLUE)    # this fills the entire surface
-                        screen.blit(s,  [square_size * i, square_size * j, square_size, square_size])    # (0,0) are the top-left coordinates
-                        break
-            
-            #if half move clock is 50 then the game is a draw
-            if board.half_move_clock==50 or stale_mate() or three_fold_repetition():
-                board.winner='draw'
-                #draw green squares around the kings
-                for piece in board.units:
-                    if piece.type=='king':
-                        i,j=piece.position
-                        s = pygame.Surface((square_size,square_size))
-                        s.set_alpha(150)
-                        s.fill(GREEN)
-                        screen.blit(s,  [square_size * i, square_size * j, square_size, square_size])
-
-
-
-    # Update the display
-
-
-    # Flip the display
-    pygame.display.flip()
-
-# Done! Time to quit.
-pygame.quit()
+    if unit_attacked is not None:
+        func_board.units.remove(unit_attacked)
+    func_board.move_unit(piece.position,move)
+    if piece.type=='king':
+        func_board.can_kingside_castle[func_board.turn]=False
+        func_board.can_queenside_castle[func_board.turn]=False
+    elif piece.type=='rook':
+        if piece.position[0]==0:
+            func_board.can_queenside_castle[func_board.turn]=False
+        elif piece.position[0]==7:
+            func_board.can_kingside_castle[func_board.turn]=False
