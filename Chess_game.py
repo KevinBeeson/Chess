@@ -4,7 +4,7 @@ import pygame
 
 board=Board()
 Main_move_generator.board=board
-load_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+load_FEN("rnbqkbnr/pppppppp/8/8/8/4BN2/PPPPPPPP/RNBQK2R w KQkq - 0 1")
 draw_board()
 generate_moves()
 #save the board
@@ -47,69 +47,7 @@ while running:
                         pygame.draw.circle(screen,BLACK,(square_size*move[0]+square_size/2,square_size*move[1]+square_size/2),square_size/5)
             #if there is selected peice and the new square is a possible move
             elif (i,j) in board.selected_unit.avaliable_moves:
-                
-                
-
-                #if there is a unit in the new square delete it
-                unit_attacked=board.get_unit_at_position((i,j))
-                #check if the unit is a pawn and if it has performed an en passant
-                if board.selected_unit.type=='pawn' and board.en_passant is not None:
-                    if board.en_passant==(board.selected_unit.position[0]+1,board.selected_unit.position[1]) or board.en_passant==(board.selected_unit.position[0]-1,board.selected_unit.position[1]):
-                        unit_attacked=board.get_unit_at_position(board.en_passant)
-                #check if the unit is a pawn and if a capture has been made if so reset the half move clock
-                if board.selected_unit.type=='pawn' or unit_attacked is not None:
-                    board.half_move_clock=0
-                else:
-                    board.half_move_clock+=1
-
-                if unit_attacked is not None:
-                    board.units.remove(unit_attacked)
-
-
-
-                #we will move the unit to the new position
-                board.move_unit(board.selected_unit,(i,j))
-                
-                if board.selected_unit.type=='king':
-                    board.can_kingside_castle[board.turn]=False
-                    board.can_queenside_castle[board.turn]=False
-                elif board.selected_unit.type=='rook':
-                    if board.selected_unit.position[0]==0:
-                        board.can_queenside_castle[board.turn]=False
-                    elif board.selected_unit.position[0]==7:
-                        board.can_kingside_castle[board.turn]=False
-                board.selected_unit=None
-                #check if the opponents king is in check
-                if check_check():
-                    if board.turn=='white':
-                        board.in_check='black'
-                    else:
-                        board.in_check='white'
-                else:
-                    board.in_check=None
-                #change the turn and add one move to the full move
-                if board.turn=='white':
-                    board.turn='black'
-                else:
-                    board.turn='white'
-                    board.full_move+=1
-
-
-                #check if the pawn can be en passanted
-                if unit_selected.type=='pawn':
-                    if unit_selected.colour=='white':
-                        if unit_selected.position[1]==4:
-                            board.en_passant=unit_selected.position
-                        else:
-                            board.en_passant=None
-                    else:
-                        if unit_selected.position[1]==3:
-                            board.en_passant=unit_selected.position
-                        else:
-                            board.en_passant=None
-                else:
-                    board.en_passant=None
-
+                move_piece(board.selected_unit,(i,j))
                 #if the pawn has reached the end of the board make it a queen
                 if unit_selected.type=='pawn':
                     if unit_selected.colour=='white':
@@ -124,6 +62,7 @@ while running:
                             board.units.append(Unit('queen',unit_selected.position,'black'))
                             unit_selected=board.get_unit_at_position(unit_selected.position)
                             draw_board()
+                board.selected_unit=None
                 generate_moves()
                 #save the board position
                 board.board_history.append(create_FEN(True))
