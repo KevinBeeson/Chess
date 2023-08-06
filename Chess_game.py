@@ -2,15 +2,32 @@ from Main_move_generator import *
 import Main_move_generator
 import pygame
 
+pygame.init()
+
+
+
+
+screen = pygame.display.set_mode([square_size*8, square_size*8.5])
+
+# Fill the background with white
+screen.fill((255, 255, 255))
+
+
+
+
+Main_move_generator.screen=screen
+
 board=Board()
 Main_move_generator.board=board
-load_FEN("rnbqkbnr/pppppppp/8/8/8/4BN2/PPPPPPPP/RNBQK2R w KQkq - 0 1")
+load_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 1 1 9")
 draw_board()
 generate_moves()
 #save the board
-board.board_history.append(create_FEN(True))
-
-
+board.board_history.append(create_FEN(True,func_board=board))
+# Update the display
+pygame.display.flip()
+# Run until the user asks to quit
+running = True
 while running:
 
     # Did the user click the window close button?
@@ -47,21 +64,9 @@ while running:
                         pygame.draw.circle(screen,BLACK,(square_size*move[0]+square_size/2,square_size*move[1]+square_size/2),square_size/5)
             #if there is selected peice and the new square is a possible move
             elif (i,j) in board.selected_unit.avaliable_moves:
+                #move the piece to the new square, capture the piece if there is one, changes the turns, en passant, half move clock, full move number, and promotion
                 move_piece(board.selected_unit,(i,j))
-                #if the pawn has reached the end of the board make it a queen
-                if unit_selected.type=='pawn':
-                    if unit_selected.colour=='white':
-                        if unit_selected.position[1]==0:
-                            board.units.remove(unit_selected)
-                            board.units.append(Unit('queen',unit_selected.position,'white'))
-                            unit_selected=board.get_unit_at_position(unit_selected.position)
-                            draw_board()
-                    else:
-                        if unit_selected.position[1]==7:
-                            board.units.remove(unit_selected)
-                            board.units.append(Unit('queen',unit_selected.position,'black'))
-                            unit_selected=board.get_unit_at_position(unit_selected.position)
-                            draw_board()
+                
                 board.selected_unit=None
                 generate_moves()
                 #save the board position

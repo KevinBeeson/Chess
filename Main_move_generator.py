@@ -1,10 +1,7 @@
 import pygame
-import numpy as np
 import copy 
 
 pygame.init()
-
-
 square_size=50
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -15,34 +12,14 @@ BROWN = (139,69,19)
 RED = (255,0,0)
 BLUE = (0,0,255)
 GREEN = (0,255,0)
-
-screen = pygame.display.set_mode([square_size*8, square_size*8.5])
-
-# Fill the background with white
-screen.fill((255, 255, 255))
 square_size=50
-# # Draw the grid
-# for i in range(8):
-#     for j in range(8):
-#         if (i+j)%2==0:
-#             pygame.draw.rect(screen, CREAM, [square_size*i,square_size*j,square_size,square_size])
-#         else:
-#             pygame.draw.rect(screen, BROWN, [square_size*i,square_size*j,square_size,square_size])
-# Define the font
-font = pygame.font.SysFont('Arial', 20)
-bold_font = pygame.font.SysFont('Arial', 40, True)
-bold_font_back = pygame.font.SysFont('Arial', 43, True)
-
-
 class Unit:
     def __init__(self, unit_type, position):
         self.type = unit_type
         self.position = position
 
-# Update the display
-pygame.display.flip()
-# Run until the user asks to quit
-running = True
+
+
 
 def sign(num):
     return -1 if num < 0 else 1
@@ -143,7 +120,9 @@ class Board:
 shapes={'pawn':'p','rook':'r','knight':'n','bishop':'b','queen':'q','king':'k'}
 anti_shapes={'p':'pawn','r':'rook','n':'knight','b':'bishop','q':'queen','k':'king'}
 # # Draw the pieces
-
+font = pygame.font.SysFont('Arial', 20)
+bold_font = pygame.font.SysFont('Arial', 40, True)
+bold_font_back = pygame.font.SysFont('Arial', 43, True)
 #make a function to draw the board and the pieces on it
 def draw_board():
     # Fill the background with white
@@ -348,13 +327,13 @@ def generate_moves(colour=None,checking=False,func_board=None):
                 if peice_type=='rook':
                     continue
             if peice_type=='bishop' or peice_type=='queen':
-                moves_bottom_right=-min(7-piece.position[0],7-piece.position[1])
-                moves_bottom_left=-min(piece.position[0],7-piece.position[1])
+                moves_bottom_right=-min(7-piece.position[0],7-piece.position[1])-1
+                moves_bottom_left=-min(piece.position[0],7-piece.position[1])-1
                 moves_top_right=min(7-piece.position[0],piece.position[1])+1
                 moves_top_left=min(piece.position[0],piece.position[1])+1
 
                 for move in [moves_bottom_left,moves_top_right]:
-                    for i in range(sign(move),move+sign(move),sign(move)):
+                    for i in range(sign(move),move,sign(move)):
                         if func_board.get_unit_at_position((piece.position[0]+i,piece.position[1]-i)) is None:
                             piece.avaliable_moves.append((piece.position[0]+i,piece.position[1]-i))
                             func_board.move_list.append((piece.position,(piece.position[0]+i,piece.position[1]-i)))
@@ -364,7 +343,7 @@ def generate_moves(colour=None,checking=False,func_board=None):
                                 func_board.move_list.append((piece.position,(piece.position[0]+i,piece.position[1]-i)))
                             break
                 for move in [moves_bottom_right,moves_top_left]:
-                    for i in range(sign(move),move+sign(move),sign(move)):
+                    for i in range(sign(move),move,sign(move)):
                         if func_board.get_unit_at_position((piece.position[0]-i,piece.position[1]-i)) is None:
                             piece.avaliable_moves.append((piece.position[0]-i,piece.position[1]-i))
                             func_board.move_list.append((piece.position,(piece.position[0]-i,piece.position[1]-i)))
@@ -379,8 +358,6 @@ def generate_moves(colour=None,checking=False,func_board=None):
             
             moves_to_remove=[]
             for move in temp_piece.avaliable_moves:
-                if temp_piece.type=='king':
-                    print(move)
                 move_piece(temp_piece,move,temp_board)
  
 
@@ -547,12 +524,14 @@ def load_FEN(FEN,func_board=None):
     #set the full move number
     func_board.full_move=int(FEN_parts[5])
 #from board create a FEN
-def create_FEN(short=False):
+def create_FEN(short=False,func_board=None):
+    if func_board is None:
+        func_board=board
     FEN=''
-    for i in range(7,-1,-1):
+    for i in range(0,8,1):
         empty=0
         for j in range(8):
-            unit=board.get_unit_at_position((j,i))
+            unit=func_board.get_unit_at_position((j,i))
             if unit is None:
                 empty+=1
             else:
@@ -565,36 +544,36 @@ def create_FEN(short=False):
                     FEN+=shapes[unit.type]
         if empty!=0:
             FEN+=str(empty)
-        if i!=0:
+        if i!=7:
             FEN+='/'
     if short:
         return FEN
     FEN+=' '
-    if board.turn=='white':
+    if func_board.turn=='white':
         FEN+='w'
     else:
         FEN+='b'
     FEN+=' '
-    if board.can_kingside_castle['white'] or board.can_queenside_castle['white'] or board.can_kingside_castle['black'] or board.can_queenside_castle['black']:
-        if board.can_kingside_castle['white']:
+    if func_board.can_kingside_castle['white'] or func_board.can_queenside_castle['white'] or func_board.can_kingside_castle['black'] or func_board.can_queenside_castle['black']:
+        if func_board.can_kingside_castle['white']:
             FEN+='K'
-        if board.can_queenside_castle['white']:
+        if func_board.can_queenside_castle['white']:
             FEN+='Q'
-        if board.can_kingside_castle['black']:
+        if func_board.can_kingside_castle['black']:
             FEN+='k'
-        if board.can_queenside_castle['black']:
+        if func_board.can_queenside_castle['black']:
             FEN+='q'
     else:
         FEN+='-'
     FEN+=' '
-    if board.en_passant is not None:
-        FEN+=chr(board.en_passant[0]+97)+str(board.en_passant[1]+1)
+    if func_board.en_passant is not None:
+        FEN+=chr(func_board.en_passant[0]+97)+str(func_board.en_passant[1]+1)
     else:
         FEN+='-'
     FEN+=' '
-    FEN+=str(board.half_move_clock)
+    FEN+=str(func_board.half_move_clock)
     FEN+=' '
-    FEN+=str(board.full_move)
+    FEN+=str(func_board.full_move)
     return FEN
 #function for checking a three fold repetition
 def three_fold_repetition():
@@ -610,6 +589,9 @@ def three_fold_repetition():
 def move_piece(piece,move,func_board=None):
     if func_board is None:
         func_board=board
+    # if the piece is a touple find the piece
+    if type(piece)==tuple:
+        piece=func_board.get_unit_at_position(piece)
     #if there is a unit in the new square delete it
     unit_attacked=func_board.get_unit_at_position(move)
     #check if the unit is a pawn and if it has performed an en passant
@@ -665,3 +647,14 @@ def move_piece(piece,move,func_board=None):
                 func_board.en_passant=None
     else:
         func_board.en_passant=None
+    #if the pawn has reached the end of the board make it a queen
+    if piece.type=='pawn':
+        if piece.colour=='white':
+            if piece.position[1]==0:
+                func_board.units.append(Unit('queen',piece.position,'white'))
+
+                func_board.units.remove(piece)
+        else:
+            if piece.position[1]==7:
+                func_board.units.append(Unit('queen',piece.position,'black'))
+                func_board.units.remove(piece)
