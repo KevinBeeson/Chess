@@ -25,10 +25,11 @@ def get_moves_per_depth(depth,board=board,return_moves=False):
             moves+=get_moves_per_depth(depth-1,temp_board,return_moves)
 
         return moves
-cProfile.run('get_moves_per_depth(2)', 'restats')
+# get_moves_per_depth(2)
+cProfile.run('get_moves_per_depth(1)', 'restats')
 p = pstats.Stats('restats')
 p.print_stats()
-# p.sort_stats('cumulative').print_stats(10)
+p.sort_stats('cumulative').print_stats(10)
 # print(get_moves_per_depth(2,return_moves=True))
 
 # #compare our moves to a to Premade_moves.txt
