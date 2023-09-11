@@ -340,8 +340,8 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
                                 break
     if not checking:
         moves_to_remove=[]
+        temp_board=copy.deepcopy(func_board)
         for check_move in temp_move_list:
-            temp_board=copy.deepcopy(func_board)
             move_piece(check_move[0],check_move[1],temp_board)
             if check_check(colour=current_colour,func_board=temp_board):
                 moves_to_remove.append(check_move)
