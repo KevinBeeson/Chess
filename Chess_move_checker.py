@@ -19,14 +19,16 @@ def get_moves_per_depth(depth,board=board,return_moves=False):
     else:
 
         generate_moves(func_board=board)
+        current_board=create_FEN(func_board=board)
         for move in board.move_list:
-            temp_board=copy.deepcopy(board)
+            temp_board=Board()
+            load_FEN(current_board,func_board=temp_board)
             move_piece(move[0],move[1],temp_board)
             moves+=get_moves_per_depth(depth-1,temp_board,return_moves)
 
         return moves
 # get_moves_per_depth(2)
-cProfile.run('get_moves_per_depth(1)', 'restats')
+cProfile.run('get_moves_per_depth(3)', 'restats')
 p = pstats.Stats('restats')
 p.print_stats()
 p.sort_stats('cumulative').print_stats(10)

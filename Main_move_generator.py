@@ -44,6 +44,7 @@ class Board:
         self.in_check = None
         self.check_mate = None
         self.selected_unit = None
+        #shows which pawn can be captured by en passant
         self.en_passant = None
         self.half_move_clock=0
         self.full_move=0
@@ -158,10 +159,10 @@ def draw_board():
     #draw the letters and numbers on the side of the board
     for i in range(8):
         if i % 2 == 0:
-            text = font.render(str(i + 1), True, CREAM)
-        else:
             text = font.render(str(i + 1), True, BLACK)
-        screen.blit(text, [square_size*7.8,square_size * i])
+        else:
+            text = font.render(str(i + 1), True, CREAM)
+        screen.blit(text, [square_size*7.8,square_size * (7-i)])
     for i in range(8):
         if i % 2 == 0:
             text = font.render(chr(ord('A') + i), True, CREAM)
@@ -234,9 +235,9 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
                 
                         #check if the pawn can en passanted
                         if func_board.en_passant is not None:
-                            if func_board.en_passant==(piece.position[0]+1,piece.position[1]):
+                            if func_board.en_passant==(piece.position[0]+1,piece.position[1]+1):
                                 temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]+1)))
-                            elif func_board.en_passant==(piece.position[0]-1,piece.position[1]):
+                            elif func_board.en_passant==(piece.position[0]-1,piece.position[1]+1):
                                 temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]+1)))
 
                     else:
@@ -257,9 +258,9 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
                                 temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]-1)))
                         #check if the pawn can en passanted
                         if func_board.en_passant is not None:
-                            if func_board.en_passant==(piece.position[0]+1,piece.position[1]):
+                            if func_board.en_passant==(piece.position[0]+1,piece.position[1]-1):
                                 temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]-1)))
-                            elif func_board.en_passant==(piece.position[0]-1,piece.position[1]):
+                            elif func_board.en_passant==(piece.position[0]-1,piece.position[1]-1):
                                 temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]-1)))
                 elif peice_type=='king':
                     possible_moves=[(1,1),(1,0),(1,-1),(0,1),(0,-1),(-1,1),(-1,0),(-1,-1)]
@@ -340,12 +341,15 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
                                 break
     if not checking:
         moves_to_remove=[]
-        temp_board=copy.deepcopy(func_board)
+        full_current_position=create_FEN(func_board=func_board)
+        temp_board=Board()
+        load_FEN(full_current_position,func_board=temp_board)
         for check_move in temp_move_list:
             move_piece(check_move[0],check_move[1],temp_board)
             if check_check(colour=current_colour,func_board=temp_board):
                 moves_to_remove.append(check_move)
-            temp_board=copy.deepcopy(func_board)
+            temp_board=Board()
+            load_FEN(full_current_position,func_board=temp_board)
         for move in moves_to_remove:
             temp_move_list.remove(move)
     #check if the king can castle kingside
@@ -510,7 +514,7 @@ def load_FEN(FEN,func_board=None):
     if FEN_parts[3]=='-':
         func_board.en_passant=None
     else:
-        func_board.en_passant=(ord(FEN_parts[3][0])-97,int(FEN_parts[3][1])-1)
+        func_board.en_passant=(ord(FEN_parts[3][0])-97,8-int(FEN_parts[3][1]))
     #set the half move clock
     func_board.half_move_clock=int(FEN_parts[4])
     #set the full move number
@@ -557,7 +561,7 @@ def create_FEN(short=False,func_board=None):
         FEN+='-'
     FEN+=' '
     if func_board.en_passant is not None:
-        FEN+=chr(func_board.en_passant[0]+97)+str(func_board.en_passant[1]+1)
+        FEN+=chr(func_board.en_passant[0]+97)+str(8-func_board.en_passant[1])
     else:
         FEN+='-'
     if short:
@@ -586,14 +590,18 @@ def move_piece(piece,move,func_board=None):
         piece=func_board.get_unit_at_position(piece)
     #if there is a unit in the new square delete it
     unit_attacked=func_board.get_unit_at_position(move)
+
+
+    func_board.move_unit(piece.position,move)
     #check if the unit is a pawn and if it has performed an en passant
     if piece.type=='pawn' and func_board.en_passant is not None:
-        if func_board.en_passant==(piece.position[0]+1,piece.position[1]) or func_board.en_passant==(piece.position[0]-1,piece.position[1]):
-            unit_attacked=func_board.get_unit_at_position(func_board.en_passant)
-
+        if func_board.en_passant==(piece.position[0],piece.position[1]) :
+            if piece.colour=='white':
+                unit_attacked=func_board.get_unit_at_position((piece.position[0],piece.position[1]+1))
+            else:
+                unit_attacked=func_board.get_unit_at_position((piece.position[0],piece.position[1]-1))
     if unit_attacked is not None:
         func_board.units.remove(unit_attacked)
-    func_board.move_unit(piece.position,move)
     if piece.type=='king':
         func_board.can_kingside_castle[func_board.turn]=False
         func_board.can_queenside_castle[func_board.turn]=False
@@ -629,12 +637,12 @@ def move_piece(piece,move,func_board=None):
     if piece.type=='pawn':
         if piece.colour=='white':
             if piece.position[1]==4:
-                func_board.en_passant=piece.position
+                func_board.en_passant=(piece.position[0],piece.position[1]-1)
             else:
                 func_board.en_passant=None
         else:
             if piece.position[1]==3:
-                func_board.en_passant=piece.position
+                func_board.en_passant=(piece.position[0],piece.position[1]+1)
             else:
                 func_board.en_passant=None
     else:

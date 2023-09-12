@@ -19,7 +19,8 @@ Main_move_generator.screen=screen
 
 board=Board()
 Main_move_generator.board=board
-load_FEN("rnb1kbnr/pppppppp/8/8/7q/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+load_FEN("rnbqkbnr/ppp1p1pp/5p2/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3")
+print(create_FEN())
 draw_board()
 generate_moves()
 #save the board
