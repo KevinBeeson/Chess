@@ -19,7 +19,7 @@ Main_move_generator.screen=screen
 
 board=Board()
 Main_move_generator.board=board
-load_FEN("rnbqkbnr/1ppppppp/p7/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2")
+load_FEN("rnb1kbnr/pppppppp/8/8/8/8/PPPPPqPP/RNBQK2R w KQkq - 0 1")
 print(create_FEN())
 draw_board()
 generate_moves()
@@ -66,7 +66,7 @@ while running:
             #if there is selected peice and the new square is a possible move
             elif (i,j) in board.selected_unit.avaliable_moves:
                 #move the piece to the new square, capture the piece if there is one, changes the turns, en passant, half move clock, full move number, and promotion
-                move_piece(board.selected_unit,(i,j))
+                move_piece(board.selected_unit,(i,j),checking=True)
                 
                 board.selected_unit=None
                 generate_moves()

@@ -204,7 +204,8 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
         current_colour=func_board.turn
     else:
         current_colour=colour
-    current_possition=create_FEN(short=True,func_board=func_board)
+    current_possition_long=create_FEN(func_board=func_board)
+    current_possition=current_possition_long[:-4]
     if current_possition in all_moves:
         print('found')
         if give_back_moves:
@@ -222,54 +223,7 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
         for piece in func_board.units:
             if piece.colour==current_colour:
                 peice_type=piece.type
-                if peice_type=='pawn':
-                    if piece.colour=='black':
-                        #check if there is a unit infrount of the pawn
-                        if func_board.get_unit_at_position((piece.position[0],piece.position[1]+1),return_location=False) is None and piece.position[1]+1<8:
-                            temp_move_list.append((piece.position,(piece.position[0],piece.position[1]+1)))
-                            #check if the pawn is in its starting possition
-                            if piece.position[1]==1:
-                                if func_board.get_unit_at_position((piece.position[0],piece.position[1]+2),return_location=False) is None:
-                                    temp_move_list.append((piece.position,(piece.position[0],piece.position[1]+2)))
-                        #check if there is a unit to the right of the pawn
-                        right_unit=func_board.get_unit_at_position((piece.position[0]+1,piece.position[1]+1),return_location=False)
-                        if right_unit is not None and right_unit.colour!=current_colour:
-                            temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]+1)))
-                        #check if there is a unit to the left of the pawn
-                        left_unit=func_board.get_unit_at_position((piece.position[0]-1,piece.position[1]+1),return_location=False)
-                        if left_unit is not None and left_unit.colour!=current_colour:
-                            temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]+1)))
-                
-                        #check if the pawn can en passanted
-                        if func_board.en_passant is not None:
-                            if func_board.en_passant==(piece.position[0]+1,piece.position[1]+1):
-                                temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]+1)))
-                            elif func_board.en_passant==(piece.position[0]-1,piece.position[1]+1):
-                                temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]+1)))
-
-                    else:
-                        #check if there is a unit infrount of the pawn
-                        if func_board.get_unit_at_position((piece.position[0],piece.position[1]-1),return_location=False) is None and piece.position[1]-1>=0:
-                            temp_move_list.append((piece.position,(piece.position[0],piece.position[1]-1)))
-                            #check if the pawn is in its starting possition
-                            if piece.position[1]==6:
-                                if func_board.get_unit_at_position((piece.position[0],piece.position[1]-2),return_location=False) is None:
-                                    temp_move_list.append((piece.position,(piece.position[0],piece.position[1]-2)))
-                        #check if there is a unit to the right of the pawn
-                        right_unit=func_board.get_unit_at_position((piece.position[0]+1,piece.position[1]-1),return_location=False)
-                        if right_unit is not None and right_unit.colour!=current_colour:
-                            temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]-1)))
-                        #check if there is a unit to the left of the pawn
-                        left_unit=func_board.get_unit_at_position((piece.position[0]-1,piece.position[1]-1),return_location=False)
-                        if left_unit is not None and left_unit.colour!=current_colour:
-                            temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]-1)))
-                        #check if the pawn can en passanted
-                        if func_board.en_passant is not None:
-                            if func_board.en_passant==(piece.position[0]+1,piece.position[1]-1):
-                                temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]-1)))
-                            elif func_board.en_passant==(piece.position[0]-1,piece.position[1]-1):
-                                temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]-1)))
-                elif peice_type=='king':
+                if peice_type=='king' and not checking:
                     possible_moves=[(1,1),(1,0),(1,-1),(0,1),(0,-1),(-1,1),(-1,0),(-1,-1)]
                     for move in possible_moves:
                         if piece.position[0]+move[0]<8 and piece.position[0]+move[0]>=0 and piece.position[1]+move[1]<8 and piece.position[1]+move[1]>=0:
@@ -277,57 +231,92 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
                             if unit_in_square is None or unit_in_square.colour!=current_colour:
                                 temp_move_list.append((piece.position,(piece.position[0]+move[0],piece.position[1]+move[1])))
                 elif peice_type=='knight':
+                    if checking and (abs(piece.position[0]-checking[0])>2 or abs(piece.position[1]-checking[1])>2):
+                        continue
                     knight_shifts=[(1,2),(2,1),(2,-1),(1,-2),(-1,-2),(-2,-1),(-2,1),(-1,2)]
                     for shift in knight_shifts:
                         if piece.position[0]+shift[0]<8 and piece.position[0]+shift[0]>=0 and piece.position[1]+shift[1]<8 and piece.position[1]+shift[1]>=0:
                             unit_in_square=func_board.get_unit_at_position((piece.position[0]+shift[0],piece.position[1]+shift[1]),return_location=False)
-                            if unit_in_square is None or unit_in_square.colour!=current_colour:
+                            if unit_in_square is None:
+                                if checking:
+                                    continue
+                                temp_move_list.append((piece.position,(piece.position[0]+shift[0],piece.position[1]+shift[1])))
+                            elif unit_in_square.colour!=current_colour:
+                                if checking:
+                                    if unit_in_square.type=='king':
+                                        return True
                                 temp_move_list.append((piece.position,(piece.position[0]+shift[0],piece.position[1]+shift[1])))
                     continue
-                if peice_type=='rook' or peice_type=='queen':
-                    #check if there is a unit infront of the rook
-                    for i in range(1,8-piece.position[1]):
-                        unit_in_square=func_board.get_unit_at_position((piece.position[0],piece.position[1]+i),return_location=False)
-                        if unit_in_square is None:
-                            temp_move_list.append((piece.position,(piece.position[0],piece.position[1]+i)))
-                        elif unit_in_square.colour!=current_colour:
-                            temp_move_list.append((piece.position,(piece.position[0],piece.position[1]+i)))
-                            break
-                        else:
-                            break
-                    #check if there is a unit behind the rook
-                    for i in range(1,1+piece.position[1]):
-                        unit_in_square=func_board.get_unit_at_position((piece.position[0],piece.position[1]-i),return_location=False)
-                        if unit_in_square is None :
-                            temp_move_list.append((piece.position,(piece.position[0],piece.position[1]-i)))                    
-                        elif unit_in_square.colour!=current_colour:
-                            temp_move_list.append((piece.position,(piece.position[0],piece.position[1]-i)))
-                            break
-                        else:
-                            break
-                    #check if there is a unit to the right of the rook
-                    for i in range(1,8-piece.position[0]):
-                        unit_in_square=func_board.get_unit_at_position((piece.position[0]+i,piece.position[1]),return_location=False)
-                        if unit_in_square is None :
-                            temp_move_list.append((piece.position,(piece.position[0]+i,piece.position[1])))
-                        elif unit_in_square.colour!=current_colour:
-                            temp_move_list.append((piece.position,(piece.position[0]+i,piece.position[1])))
-                            break
-                        else:
-                            break
-                    #check if there is a unit to the left of the rook
-                    for i in range(1,1+piece.position[0]):
-                        unit_in_square=func_board.get_unit_at_position((piece.position[0]-i,piece.position[1]),return_location=False)
-                        if unit_in_square is None :
-                            temp_move_list.append((piece.position,(piece.position[0]-i,piece.position[1])))
-                        elif unit_in_square.colour!=current_colour:
-                            temp_move_list.append((piece.position,(piece.position[0]-i,piece.position[1])))
-                            break
-                        else:
-                            break
+                elif peice_type=='rook' or peice_type=='queen':
+                    if checking and (abs(piece.position[0]-checking[0])!=0 and abs(piece.position[1]-checking[1])!=0):
+                            if peice_type=='rook':
+                                continue
+                    else:
+                        #check if there is a unit infront of the rook
+                        for i in range(1,8-piece.position[1]):
+                            unit_in_square=func_board.get_unit_at_position((piece.position[0],piece.position[1]+i),return_location=False)
+                            if unit_in_square is None :
+                                if checking:
+                                    continue
+                                temp_move_list.append((piece.position,(piece.position[0],piece.position[1]+i)))
+                            elif unit_in_square.colour!=current_colour:
+                                if checking:
+                                    if unit_in_square.type=='king':
+                                        return True
+                                temp_move_list.append((piece.position,(piece.position[0],piece.position[1]+i)))
+                                break
+                            else:
+                                break
+                        #check if there is a unit behind the rook
+                        for i in range(1,1+piece.position[1]):
+                            unit_in_square=func_board.get_unit_at_position((piece.position[0],piece.position[1]-i),return_location=False)
+                            if unit_in_square is None :
+                                if checking:
+                                    continue
+                                temp_move_list.append((piece.position,(piece.position[0],piece.position[1]-i)))                    
+                            elif unit_in_square.colour!=current_colour:
+                                if checking:
+                                    if unit_in_square.type=='king':
+                                        return True
+                                temp_move_list.append((piece.position,(piece.position[0],piece.position[1]-i)))
+                                break
+                            else:
+                                break
+                        #check if there is a unit to the right of the rook
+                        for i in range(1,8-piece.position[0]):
+                            unit_in_square=func_board.get_unit_at_position((piece.position[0]+i,piece.position[1]),return_location=False)
+                            if unit_in_square is None:
+                                if checking:
+                                    continue
+                                temp_move_list.append((piece.position,(piece.position[0]+i,piece.position[1])))
+                            elif unit_in_square.colour!=current_colour:
+                                if checking:
+                                    if unit_in_square.type=='king':
+                                        return True
+                                temp_move_list.append((piece.position,(piece.position[0]+i,piece.position[1])))
+                                break
+                            else:
+                                break
+                        #check if there is a unit to the left of the rook
+                        for i in range(1,1+piece.position[0]):
+                            unit_in_square=func_board.get_unit_at_position((piece.position[0]-i,piece.position[1]),return_location=False)
+                            if unit_in_square is None:
+                                if checking:
+                                    continue
+                                temp_move_list.append((piece.position,(piece.position[0]-i,piece.position[1])))
+                            elif unit_in_square.colour!=current_colour:
+                                if checking:
+                                    if unit_in_square.type=='king':
+                                        return True
+                                temp_move_list.append((piece.position,(piece.position[0]-i,piece.position[1])))
+                                break
+                            else:
+                                break
                     if peice_type=='rook':
                         continue
                 if peice_type=='bishop' or peice_type=='queen':
+                    if checking and (abs(piece.position[0]-checking[0])!=abs(piece.position[1]-checking[1])):
+                        continue
                     moves_bottom_right=-min(7-piece.position[0],7-piece.position[1])-1
                     moves_bottom_left=-min(piece.position[0],7-piece.position[1])-1
                     moves_top_right=min(7-piece.position[0],piece.position[1])+1
@@ -337,8 +326,13 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
                         for i in range(sign(move),move,sign(move)):
                             unit_in_square=func_board.get_unit_at_position((piece.position[0]+i,piece.position[1]-i),return_location=False)
                             if unit_in_square is None :
+                                if checking:
+                                    continue
                                 temp_move_list.append((piece.position,(piece.position[0]+i,piece.position[1]-i)))
                             elif unit_in_square.colour!=current_colour:
+                                if checking:
+                                    if unit_in_square.type=='king':
+                                        return True
                                 temp_move_list.append((piece.position,(piece.position[0]+i,piece.position[1]-i)))
                                 break
                             else:
@@ -346,64 +340,138 @@ def generate_moves(colour=None,checking=False,func_board=None,give_back_moves=Fa
                     for move in [moves_bottom_right,moves_top_left]:
                         for i in range(sign(move),move,sign(move)):
                             unit_in_square=func_board.get_unit_at_position((piece.position[0]-i,piece.position[1]-i),return_location=False)
-                            if unit_in_square is None :
+                            if unit_in_square is None:
+                                if checking:
+                                    continue
                                 temp_move_list.append((piece.position,(piece.position[0]-i,piece.position[1]-i)))
                             elif unit_in_square.colour!=current_colour:
+                                if checking:
+                                    if unit_in_square.type=='king':
+                                        return True
                                 temp_move_list.append((piece.position,(piece.position[0]-i,piece.position[1]-i)))
                                 break
                             else:
                                 break
+                elif peice_type=='pawn':
+                    if checking and (abs(piece.position[0]-checking[0])!=1 or abs(piece.position[1]-checking[1])!=1):
+                        continue
+                    if piece.colour=='black':
+                        #check if there is a unit infrount of the pawn
+                        if func_board.get_unit_at_position((piece.position[0],piece.position[1]+1),return_location=False) is None and piece.position[1]+1<8 and not checking:
+                            temp_move_list.append((piece.position,(piece.position[0],piece.position[1]+1)))
+                            #check if the pawn is in its starting possition
+                            if piece.position[1]==1:
+                                if func_board.get_unit_at_position((piece.position[0],piece.position[1]+2),return_location=False) is None :
+                                    temp_move_list.append((piece.position,(piece.position[0],piece.position[1]+2)))
+                        #check if there is a unit to the right of the pawn
+                        right_unit=func_board.get_unit_at_position((piece.position[0]+1,piece.position[1]+1),return_location=False)
+                        if right_unit is not None and right_unit.colour!=current_colour:
+                            if checking: 
+                                if right_unit.type=='king':
+                                    return True
+                            temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]+1)))
+                        #check if there is a unit to the left of the pawn
+                        left_unit=func_board.get_unit_at_position((piece.position[0]-1,piece.position[1]+1),return_location=False)
+                        if left_unit is not None and left_unit.colour!=current_colour:
+                            if checking:
+                                if left_unit.type=='king':
+                                    return True
+                            temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]+1)))
+                
+                        #check if the pawn can en passanted
+                        if func_board.en_passant is not None and not checking:
+                            if func_board.en_passant==(piece.position[0]+1,piece.position[1]+1):
+                                temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]+1)))
+                            elif func_board.en_passant==(piece.position[0]-1,piece.position[1]+1):
+                                temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]+1)))
+
+                    else:
+                        #check if there is a unit infrount of the pawn
+                        if func_board.get_unit_at_position((piece.position[0],piece.position[1]-1),return_location=False) is None and piece.position[1]-1>=0 and not checking:
+                            temp_move_list.append((piece.position,(piece.position[0],piece.position[1]-1)))
+                            #check if the pawn is in its starting possition
+                            if piece.position[1]==6:
+                                if func_board.get_unit_at_position((piece.position[0],piece.position[1]-2),return_location=False) is None:
+                                    temp_move_list.append((piece.position,(piece.position[0],piece.position[1]-2)))
+                        #check if there is a unit to the right of the pawn
+                        right_unit=func_board.get_unit_at_position((piece.position[0]+1,piece.position[1]-1),return_location=False)
+                        if right_unit is not None and right_unit.colour!=current_colour:
+                            if checking:
+                                if right_unit.type=='king':
+                                    return True
+                            temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]-1)))
+                        #check if there is a unit to the left of the pawn
+                        left_unit=func_board.get_unit_at_position((piece.position[0]-1,piece.position[1]-1),return_location=False)
+                        if left_unit is not None and left_unit.colour!=current_colour:
+                            if checking:
+                                if left_unit.type=='king':
+                                    return True
+                            temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]-1)))
+                        #check if the pawn can en passanted
+                        if func_board.en_passant is not None and not checking:
+                            if func_board.en_passant==(piece.position[0]+1,piece.position[1]-1):
+                                temp_move_list.append((piece.position,(piece.position[0]+1,piece.position[1]-1)))
+                            elif func_board.en_passant==(piece.position[0]-1,piece.position[1]-1):
+                                temp_move_list.append((piece.position,(piece.position[0]-1,piece.position[1]-1)))
+
     if not checking:
         moves_to_remove=[]
-        full_current_position=create_FEN(func_board=func_board)
         temp_board=Board()
-        load_FEN(full_current_position,func_board=temp_board)
+        load_FEN(current_possition_long,func_board=temp_board)
         for check_move in temp_move_list:
             move_piece(check_move[0],check_move[1],temp_board)
             if check_check(colour=current_colour,func_board=temp_board):
                 moves_to_remove.append(check_move)
             temp_board=Board()
-            load_FEN(full_current_position,func_board=temp_board)
+            load_FEN(current_possition_long,func_board=temp_board)
         for move in moves_to_remove:
             temp_move_list.remove(move)
     #check if the king can castle kingside
-    if func_board.can_kingside_castle[current_colour]:
+    if func_board.can_kingside_castle[current_colour] and not checking:
         if current_colour=='white':
             x=7
         else:
             x=0
         if func_board.get_unit_at_position((5,x),return_location=False) is None and func_board.get_unit_at_position((6,x),return_location=False) is None:
-            temp_board=copy.deepcopy(func_board)
+
+            temp_board=Board()
+            load_FEN(current_possition_long,func_board=temp_board)
             for i in range(1,3):
                 temp_board.move_unit((4,x),(4+i,x))
                 if check_check(colour=current_colour,func_board=temp_board):
                     func_board.can_kingside_castle[current_colour]=False
                     break
-                temp_board=copy.deepcopy(func_board)
-            for piece in func_board.units:
-                if piece.colour==current_colour:
-                    if piece.type=='king':
-                        temp_move_list.append((piece.position,(6,x)))
-                        break
+                load_FEN(current_possition_long,func_board=temp_board)
+            if func_board.can_kingside_castle[current_colour]:
+                for piece in func_board.units:
+                    if piece.colour==current_colour:
+                        if piece.type=='king':
+                            temp_move_list.append((piece.position,(6,x)))
+                            break
     #check if the king can castle queenside
-    if func_board.can_queenside_castle[current_colour]:
+    if func_board.can_queenside_castle[current_colour] and not checking:
         if current_colour=='white':
             x=7
         else:
             x=0
         if func_board.get_unit_at_position((1,x),return_location=False) is None and func_board.get_unit_at_position((2,x),return_location=False) is None and func_board.get_unit_at_position((3,x),return_location=False) is None:
-            temp_board=copy.deepcopy(func_board)
+            temp_board=Board()
+            load_FEN(current_possition_long,func_board=temp_board)
             for i in range(1,3):
                 temp_board.move_unit((4,x),(4-i,x))
                 if check_check(colour=current_colour,func_board=temp_board):
                     func_board.can_queenside_castle[current_colour]=False
                     break
-                temp_board=copy.deepcopy(func_board)
-            for piece in func_board.units:
-                if piece.colour==current_colour:
-                    if piece.type=='king':
-                        temp_move_list.append((piece.position,(2,x)))
-                        break
+                load_FEN(current_possition_long,func_board=temp_board)
+            if func_board.can_queenside_castle[current_colour]:
+                for piece in func_board.units:
+                    if piece.colour==current_colour:
+                        if piece.type=='king':
+                            temp_move_list.append((piece.position,(2,x)))
+                            break
+    #has checked all the moves and the king is not in check
+    if checking:
+        return False
     #add the possible move list to the dictionary
     if give_back_moves:
         return temp_move_list
@@ -467,13 +535,10 @@ def check_check(colour=None,func_board=None):
                 king_position=piece.position
                 break
     func_board.turn=opponent_colour
-    move_list=generate_moves(checking=True,func_board=func_board,give_back_moves=True)
+    check=generate_moves(checking=king_position,func_board=func_board,give_back_moves=True)
     func_board.turn=opponent_colour
     #check if there is a unit that can attack the king
-    for move in move_list:
-        if king_position==move[1]:
-            return True
-    return False
+    return check
 
 """
 This function will load starting position of the pieces using the FEN notation
@@ -598,7 +663,7 @@ def three_fold_repetition():
             return True
 
 #Function when moving a piece will take and change en passant and castling etc
-def move_piece(piece,move,func_board=None):
+def move_piece(piece,move,func_board=None,checking=False):
     if func_board is None:
         func_board=board
     # if the piece is a touple find the piece
@@ -637,15 +702,15 @@ def move_piece(piece,move,func_board=None):
     else:
         func_board.half_move_clock+=1
                     #we will move the unit to the new position
-
-    #check if the opponents king is in check
-    if check_check(func_board=func_board):
-        if func_board.turn=='white':
-            func_board.in_check='black'
+    if checking:
+        #check if the opponents king is in check
+        if check_check(func_board=func_board):
+            if func_board.turn=='white':
+                func_board.in_check='black'
+            else:
+                func_board.in_check='white'
         else:
-            func_board.in_check='white'
-    else:
-        func_board.in_check=None
+            func_board.in_check=None
     #change the turn and add one move to the full move
     if func_board.turn=='white':
         func_board.turn='black'
